@@ -1,0 +1,14 @@
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\TouchpadToMiddleClick.GeneratedMSBuildEditorConfig.editorconfig
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\TouchpadToMiddleClick.AssemblyInfoInputs.cache
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\TouchpadToMiddleClick.AssemblyInfo.cs
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\TouchpadToMiddleClick.csproj.CoreCompileInputs.cache
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\bin\Debug\net8.0-windows\TouchpadToMiddleClick.exe
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\bin\Debug\net8.0-windows\TouchpadToMiddleClick.deps.json
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\bin\Debug\net8.0-windows\TouchpadToMiddleClick.runtimeconfig.json
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\bin\Debug\net8.0-windows\TouchpadToMiddleClick.dll
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\bin\Debug\net8.0-windows\TouchpadToMiddleClick.pdb
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\TouchpadToMiddleClick.dll
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\refint\TouchpadToMiddleClick.dll
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\TouchpadToMiddleClick.pdb
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\TouchpadToMiddleClick.genruntimeconfig.cache
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\ref\TouchpadToMiddleClick.dll

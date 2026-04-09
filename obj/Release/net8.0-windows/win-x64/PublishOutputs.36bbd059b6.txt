@@ -1,0 +1,2 @@
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\bin\Release\net8.0-windows\win-x64\publish\TouchpadToMiddleClick.pdb
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\bin\Release\net8.0-windows\win-x64\publish\TouchpadToMiddleClick.exe

@@ -1,0 +1,4 @@
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0\TouchpadToMiddleClick.GeneratedMSBuildEditorConfig.editorconfig
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0\TouchpadToMiddleClick.AssemblyInfoInputs.cache
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0\TouchpadToMiddleClick.AssemblyInfo.cs
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0\TouchpadToMiddleClick.csproj.CoreCompileInputs.cache
