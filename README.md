@@ -14,5 +14,7 @@
 
 This project is modified from ThreeFingerDragOnWindows created by [ClementGre].
 
+Special thanks to the original creator for their generous contribution to the open-source community！
+
 触摸板的底层报文解包实现原理参考了https://github.com/ClementGre/ThreeFingerDragOnWindows
 
