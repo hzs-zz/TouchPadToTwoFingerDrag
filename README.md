@@ -8,7 +8,7 @@
 本人才开始入门c#，对于xaml，gui相关一窍不通，所以没有图形化界面。。。
 ## 鸣谢 / Acknowledgments
 
-本项目是基于 ClementGre 的优秀开源项目 ThreeFingerDragOnWindows 进行二次开发与功能扩展的。
+本项目是基于 ClementGre项目组的优秀开源项目 ThreeFingerDragOnWindows 进行二次开发与功能扩展的。
 
 非常感谢原作者的无私分享！
 
