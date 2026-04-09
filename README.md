@@ -6,5 +6,13 @@
 按下alt+shift+m即可控制开启关闭
 
 本人才开始入门c#，对于xaml，gui相关一窍不通，所以没有图形化界面。。。
+## 鸣谢 / Acknowledgments
 
-触摸板的底层报文解包实现原理参考了另外一个项目https://github.com/ClementGre/ThreeFingerDragOnWindows
+本项目是基于 ClementGre 的优秀开源项目 ThreeFingerDragOnWindows 进行二次开发与功能扩展的。
+
+非常感谢原作者的无私分享！
+
+This project is modified from ThreeFingerDragOnWindows created by [ClementGre].
+
+触摸板的底层报文解包实现原理参考了https://github.com/ClementGre/ThreeFingerDragOnWindows
+
