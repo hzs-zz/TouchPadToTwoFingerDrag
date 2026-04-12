@@ -195,3 +195,4 @@ D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\w
 D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\win-x64\TouchpadToMiddleClick.pdb
 D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\win-x64\TouchpadToMiddleClick.genruntimeconfig.cache
 D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\win-x64\ref\TouchpadToMiddleClick.dll
+D:\windex\TouchpadToMiddleClick\TouchpadToMiddleClick\obj\Debug\net8.0-windows\win-x64\TouchpadToMiddleClick.sourcelink.json

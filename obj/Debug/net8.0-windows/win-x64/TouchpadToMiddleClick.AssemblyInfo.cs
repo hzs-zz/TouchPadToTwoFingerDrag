@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TouchpadToMiddleClick")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+64d8dd7180625382dfa8bc4300f9ac5535fd2d8c")]
 [assembly: System.Reflection.AssemblyProductAttribute("TouchpadToMiddleClick")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TouchpadToMiddleClick")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
