@@ -1,0 +1,26 @@
+﻿<Window x:Class="TouchpadToMiddleClick.StatusToast"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HUD" Height="100" Width="300"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Topmost="True" ShowInTaskbar="False" 
+        ShowActivated="False" IsHitTestVisible="False">
+    <Grid Name="wadpy_pn_MainGrid" Margin="0,0,99,0">
+        <Grid.RenderTransform>
+            <TransformGroup>
+                <ScaleTransform x:Name="wadpy_pn_Scale" ScaleX="0.5" ScaleY="0.5" CenterX="0" CenterY="50"/>
+
+                <TranslateTransform x:Name="wadpy_pn_Transfer" X="-300"/>
+            </TransformGroup>
+        </Grid.RenderTransform>
+
+        <Border Background="#CC222222" CornerRadius="20,20,20,20" Margin="10,10,10,10">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="15" Opacity="0.4" Direction="0"/>
+            </Border.Effect>
+            <TextBlock x:Name="wadpy_pn_Msg" Text="状态提示" Foreground="White" 
+                       FontSize="18" FontWeight="Bold" 
+                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+        </Border>
+    </Grid>
+</Window>
