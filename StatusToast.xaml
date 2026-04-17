@@ -19,7 +19,7 @@
                 <DropShadowEffect BlurRadius="15" Opacity="0.4" Direction="0"/>
             </Border.Effect>
             <TextBlock x:Name="wadpy_pn_Msg" Text="状态提示" Foreground="White" 
-                       FontSize="18" FontWeight="Bold" 
+                       FontSize="14" FontWeight="Bold" 
                        VerticalAlignment="Center" HorizontalAlignment="Center"/>
         </Border>
     </Grid>

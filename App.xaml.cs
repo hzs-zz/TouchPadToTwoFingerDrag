@@ -54,7 +54,7 @@ namespace TouchpadToMiddleClick
                         bool isEnabled = !MouseHookManager.IsDriverActive;
                         MouseHookManager.IsDriverActive = isEnabled;
                         if (!isEnabled) wadpy_pn_logicBrain.Process(new List<TouchpadContact>());
-                        Dispatcher.Invoke(() => StatusToast.Show(isEnabled ? "🚀 驱动已开启" : "⏸️ 驱动已挂起"));
+                        Dispatcher.Invoke(() => StatusToast.Show(isEnabled ? "触摸板已接管" : "已挂起"));
                     };
 
                     TouchpadHelper.OnSettingsHotkey = () => Dispatcher.Invoke(() => ShowSettingsWindow());
@@ -95,7 +95,7 @@ namespace TouchpadToMiddleClick
                 {
                     MouseHookManager.IsDriverActive = isTarget;
                     if (!isTarget) wadpy_pn_logicBrain.Process(new List<TouchpadContact>());
-                    StatusToast.Show(isTarget ? $"🚀 自动接管: {processName}" : "⏸️ 驱动挂起 (失去焦点)");
+                    StatusToast.Show(isTarget ? $"自动接管: {processName}" : "驱动挂起");
                 }
             });
         }
