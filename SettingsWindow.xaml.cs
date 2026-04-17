@@ -76,7 +76,7 @@ namespace TouchpadToMiddleClick
         {
             try
             {
-                Process.Start(new ProcessStartInfo("https://github.com/YourUsername") { UseShellExecute = true });
+                Process.Start(new ProcessStartInfo("https://github.com/hzs-zz") { UseShellExecute = true });
             }
             catch { /* 忽略浏览器启动异常 */ }
         }
