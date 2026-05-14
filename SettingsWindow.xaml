@@ -373,9 +373,10 @@
 
                         <Border BorderBrush="#22000000" BorderThickness="0,0,0,1" Margin="0,0,0,30"/>
 
-                        <TextBlock Text="老实说，这个插件的技术力并不高，有好多方法都是ai写的" FontSize="12" Foreground="#88000000" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                        <TextBlock Text="我当初想做这个小插件，是因为我羡慕MacBook的触摸板体验，但暂时买不起，如果你觉得有用，愿意请我喝杯咖啡，我会很感激" FontSize="12" Foreground="#88000000" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                        <TextBlock Text="在那之前，我会继续优化Windows上稀烂的触摸板体验" FontSize="12" Foreground="#88000000" HorizontalAlignment="Center" Margin="0,0,0,20"/>
+                        <TextBlock Text="老实说，这个插件的技术力并不高，有好多方法都是ai写的" FontSize="12"  HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="我当初想做这个小插件，是因为我羡慕MacBook的触摸板体验，但暂时买不起，" FontSize="12"  HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="如果你觉得有用，愿意请我喝杯咖啡的话，我会很感激" FontSize="12"  HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="在那之前，我会继续优化Windows上稀烂的触摸板体验，以及更多有意思的东西" FontSize="12"  HorizontalAlignment="Center" Margin="0,0,0,20"/>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <ui:Card Margin="10">
