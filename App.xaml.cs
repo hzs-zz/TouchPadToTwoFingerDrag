@@ -17,7 +17,6 @@ namespace TouchpadToMiddleClick
         private SettingsWindow? wadpy_pn_SettingsWin;
         private ForegroundTracker? wadpy_pn_Radar;
 
-        // 🌟 核心修改：设为 public，让 StatusToast 可以直接读到它！
         public ConfigContainer wadpy_pn_Config = new ConfigContainer();
         private string wadpy_pn_ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TouchpadConfig.xml");
 
@@ -146,6 +145,8 @@ namespace TouchpadToMiddleClick
             Dispatcher.Invoke(() =>
             {
                 MouseHookManager.PanTargetClasses = panConfig?.TargetClasses;
+                // 🌟 同步传导该进程的黑白名单规则
+                MouseHookManager.IsPanReverseRule = panConfig?.IsReverseRule ?? false;
                 MouseHookManager.ScrollTargetClasses = scrollConfig?.TargetClasses;
 
                 if (panConfig == null && scrollConfig == null)

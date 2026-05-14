@@ -13,7 +13,6 @@ namespace TouchpadToMiddleClick;
 
 class TouchpadCore { }
 
-// 🌟 新增：模式区分
 public enum InteractionMode { None, Panning, Scrolling }
 
 public class TwoFingerLogic
@@ -84,6 +83,7 @@ public class TwoFingerLogic
                 double avgDx = matchCount > 0 ? (double)totalDx / matchCount : 0;
                 double avgDy = matchCount > 0 ? (double)totalDy / matchCount : 0;
                 double panMagnitude = Math.Sqrt(avgDx * avgDx + avgDy * avgDy);
+
                 double currentDistance = CalculateDistance(currentContacts[0], currentContacts[1]);
                 double deltaDistance = _isDragging ? (currentDistance - _lastDistance) : 0;
 
@@ -91,7 +91,6 @@ public class TwoFingerLogic
 
                 if (hasPhysicalMovement)
                 {
-                    // 🌟 分支 1：如果是“强制滚轮模拟”模式，只发送原生滚轮信号
                     if (activeMode == InteractionMode.Scrolling)
                     {
                         if (!_isDragging)
@@ -100,17 +99,15 @@ public class TwoFingerLogic
                             _remY = 0;
                         }
 
-                        _remY += avgDy * 0.8; // 灵敏度乘数，可调整
+                        _remY += avgDy * 0.8;
                         int clicks = (int)_remY;
 
                         if (clicks != 0)
                         {
-                            // dy为正表示手指下滑，相当于滚轮向后滚(页面下卷)，原生滚轮向下是负数
                             MouseSimulator.Scroll(clicks * 15);
                             _remY -= clicks;
                         }
                     }
-                    // 🌟 分支 2：如果是原有的“中键平移”模式
                     else if (activeMode == InteractionMode.Panning)
                     {
                         if (!_isDragging)
@@ -237,12 +234,16 @@ public static class MouseHookManager
     public static bool IsPanMasterOn = false;
     public static bool IsScrollMasterOn = false;
 
+    // 🌟 新增：底层同步接收反向规则状态
+    public static bool IsPanReverseRule = false;
+
     public static IEnumerable<string>? PanTargetClasses = null;
     public static IEnumerable<string>? ScrollTargetClasses = null;
 
     [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(POINT Point);
     [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
     [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT lpPoint);
+    [DllImport("user32.dll", ExactSpelling = true, CharSet = CharSet.Auto)] private static extern IntPtr GetParent(IntPtr hWnd);
 
     private static int _lastTouchpadTick = 0;
     private const int INERTIA_TIMEOUT = 500;
@@ -274,20 +275,55 @@ public static class MouseHookManager
             InteractionMode prevMode = ActiveMode;
             InteractionMode currentMode = InteractionMode.None;
 
-            IntPtr hWndUnderCursor = WindowFromPoint(pt);
-            if (hWndUnderCursor != IntPtr.Zero)
-            {
-                StringBuilder classNameBuilder = new StringBuilder(256);
-                GetClassName(hWndUnderCursor, classNameBuilder, 256);
-                string className = classNameBuilder.ToString();
+            IntPtr startHwnd = WindowFromPoint(pt);
 
-                // 优先判断是否符合“中键平移”
-                if (IsPanMasterOn && PanTargetClasses != null && PanTargetClasses.Any(c => className.IndexOf(c, StringComparison.OrdinalIgnoreCase) >= 0))
+            // --- 1. 判断是否触发中键平移 (支持家族树遍历与反向黑名单) ---
+            if (IsPanMasterOn && PanTargetClasses != null)
+            {
+                bool foundMatch = false;
+                IntPtr tempHwnd = startHwnd;
+
+                // 向上扒皮遍历
+                while (tempHwnd != IntPtr.Zero)
+                {
+                    StringBuilder classNameBuilder = new StringBuilder(256);
+                    GetClassName(tempHwnd, classNameBuilder, 256);
+                    if (PanTargetClasses.Any(c => classNameBuilder.ToString().IndexOf(c, StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        foundMatch = true;
+                        break; // 只要族谱里有一个符合，立刻跳出
+                    }
+                    tempHwnd = GetParent(tempHwnd);
+                }
+
+                // 🌟 核心逻辑：
+                // 如果开启了反向规则（黑名单），没碰到黑名单才开启
+                // 如果是正向规则（白名单），碰到了白名单才开启
+                if (IsPanReverseRule ? !foundMatch : foundMatch)
                 {
                     currentMode = InteractionMode.Panning;
                 }
-                // 再判断是否符合“强制模拟滚动”
-                else if (IsScrollMasterOn && ScrollTargetClasses != null && ScrollTargetClasses.Any(c => className.IndexOf(c, StringComparison.OrdinalIgnoreCase) >= 0))
+            }
+
+            // --- 2. 判断是否触发滚动模拟 (如果没触发平移) ---
+            if (currentMode == InteractionMode.None && IsScrollMasterOn && ScrollTargetClasses != null)
+            {
+                bool foundMatch = false;
+                IntPtr tempHwnd = startHwnd;
+
+                while (tempHwnd != IntPtr.Zero)
+                {
+                    StringBuilder classNameBuilder = new StringBuilder(256);
+                    GetClassName(tempHwnd, classNameBuilder, 256);
+                    if (ScrollTargetClasses.Any(c => classNameBuilder.ToString().IndexOf(c, StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        foundMatch = true;
+                        break;
+                    }
+                    tempHwnd = GetParent(tempHwnd);
+                }
+
+                if (foundMatch)
                 {
                     currentMode = InteractionMode.Scrolling;
                 }
@@ -326,7 +362,6 @@ public static class MouseHookManager
 
     private static void RestRadar_Tick(object sender, ElapsedEventArgs e)
     {
-        // 只有当至少一个功能总开关打开，且手指不在拖拽时，才在后台巡逻
         if (!(IsPanMasterOn || IsScrollMasterOn) || _lastContactCount >= 2) return;
 
         if (GetCursorPos(out POINT pt))
@@ -353,7 +388,6 @@ public static class MouseHookManager
         {
             if (wParam == (IntPtr)WM_MOUSEWHEEL || wParam == (IntPtr)WM_MOUSEHWHEEL)
             {
-                // 如果当前模式是None，原生滚轮正常放行
                 if (ActiveMode == InteractionMode.None)
                 {
                     return CallNextHookEx(_hookID, nCode, wParam, lParam);
@@ -361,11 +395,9 @@ public static class MouseHookManager
 
                 MSLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
 
-                // 我们自己注入的滚动信号 (MouseSimulator 发送的) 不会被拦截！
                 if ((hookStruct.flags & LLMHF_INJECTED) == 0 && (hookStruct.flags & LLMHF_LOWER_IL_INJECTED) == 0)
                 {
                     int elapsed = Environment.TickCount - _lastTouchpadTick;
-                    // 吸收真实的物理触摸板惯性及滚动信号
                     if (elapsed >= 0 && elapsed < INERTIA_TIMEOUT)
                     {
                         return (IntPtr)1;

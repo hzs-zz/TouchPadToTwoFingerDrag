@@ -119,9 +119,46 @@
                                     <DataTemplate>
                                         <Expander Header="{Binding ProcessName}" Background="#05000000" BorderThickness="0" Margin="0,0,0,5" Padding="10">
                                             <StackPanel Margin="30,10,10,10">
+
                                                 <Grid Margin="0,0,0,10">
-                                                    <TextBlock Text="生效视口类名:" Foreground="#88000000" VerticalAlignment="Center"/>
-                                                    <ui:Button Icon="{ui:SymbolIcon Delete24}" Appearance="Danger" Content="移除此进程" HorizontalAlignment="Right" Click="RemovePanProcess_Click"/>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <TextBlock Grid.Column="0" Text="生效视口类名:" Foreground="#88000000" VerticalAlignment="Center"/>
+
+                                                    <ui:Card Grid.Column="2" Padding="8,4" Margin="0,0,10,0" Cursor="Hand" MouseLeftButtonDown="ReverseRuleCard_MouseLeftButtonDown">
+                                                        <ui:Card.Style>
+                                                            <Style TargetType="ui:Card" BasedOn="{StaticResource {x:Type ui:Card}}">
+                                                                <Setter Property="Background" Value="White"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsChecked, ElementName=ReverseSwitch}" Value="True">
+                                                                        <Setter Property="Background" Value="#FF8C00"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </ui:Card.Style>
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="反向规则 (黑名单)" VerticalAlignment="Center" Margin="0,0,8,0">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="Black"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsChecked, ElementName=ReverseSwitch}" Value="True">
+                                                                                <Setter Property="Foreground" Value="White"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                            <ui:ToggleSwitch x:Name="ReverseSwitch" IsChecked="{Binding IsReverseRule, Mode=TwoWay}" Checked="ReverseSwitch_Changed" Unchecked="ReverseSwitch_Changed" Margin="0" Padding="0"/>
+                                                        </StackPanel>
+                                                    </ui:Card>
+
+                                                    <ui:Button Grid.Column="3" Icon="{ui:SymbolIcon Delete24}" Appearance="Danger" Content="移除此进程" HorizontalAlignment="Right" Click="RemovePanProcess_Click"/>
                                                 </Grid>
                                                 <ItemsControl ItemsSource="{Binding TargetClasses}">
                                                     <ItemsControl.ItemTemplate>
@@ -215,13 +252,6 @@
                                 <ui:ToggleSwitch x:Name="ScrollSwitch" Grid.Column="1" VerticalAlignment="Center"/>
                             </Grid>
                         </ui:Card>
-
-                        
-
-
-
-
-
 
                         <TextBlock Text="强制滚动进程名单" FontWeight="SemiBold" Margin="5,0,0,10"/>
                         <ui:Card Padding="5">
@@ -337,8 +367,6 @@
                         <ui:Card Margin="10">
                             <Image Source="avatar.png" Width="130" Height="180" Stretch="Uniform"/>
                         </ui:Card>
-
-
 
                         <TextBlock Text="XiaoSheng" FontSize="20" FontWeight="Bold" Margin="0,15,0,0" HorizontalAlignment="Center"/>
                         <ui:Button Content="GitHub（点击前往主页）" Icon="{ui:SymbolIcon Code24}" Appearance="Secondary" Margin="0,20,0,30" Click="GithubButton_Click" HorizontalAlignment="Center"/>

@@ -10,6 +10,10 @@ namespace TouchpadToMiddleClick
     public class ProcessConfig
     {
         public string ProcessName { get; set; } = "";
+
+        // 🌟 反向规则（黑名单）开关
+        public bool IsReverseRule { get; set; } = false;
+
         public ObservableCollection<string> TargetClasses { get; set; } = new ObservableCollection<string>();
     }
 
@@ -57,11 +61,43 @@ namespace TouchpadToMiddleClick
             ToastSwitch.Unchecked += ToastSwitch_Unchecked;
         }
 
-        // --- 🌟 新增：整个卡片区域的点击控制 ---
+        // --- 🌟 恢复：三个主开关卡片的点击控制 ---
         private void PanCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { PanSwitch.IsChecked = !PanSwitch.IsChecked; e.Handled = true; }
         private void ScrollCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { ScrollSwitch.IsChecked = !ScrollSwitch.IsChecked; e.Handled = true; }
         private void ToastCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { ToastSwitch.IsChecked = !ToastSwitch.IsChecked; e.Handled = true; }
 
+        // --- 🌟 反向规则卡片区域的整块点击控制 ---
+        private void ReverseRuleCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement card)
+            {
+                var sw = FindVisualChild<Wpf.Ui.Controls.ToggleSwitch>(card);
+                if (sw != null) sw.IsChecked = !sw.IsChecked;
+            }
+            e.Handled = true;
+        }
+
+        // 辅助函数：在卡片里找到那个 ToggleSwitch
+        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child != null && child is T typedChild) return typedChild;
+                else
+                {
+                    T? childOfChild = FindVisualChild<T>(child!);
+                    if (childOfChild != null) return childOfChild;
+                }
+            }
+            return null;
+        }
+
+        private void ReverseSwitch_Changed(object sender, RoutedEventArgs e)
+        {
+            (Application.Current as App)?.SaveConfig();
+            (Application.Current as App)?.UpdateHookMasters();
+        }
 
         // --- 全局设置逻辑 ---
         private void ToastSwitch_Checked(object sender, RoutedEventArgs e) { _config.ShowToastNotifications = true; (Application.Current as App)?.SaveConfig(); }
