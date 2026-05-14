@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.ObjectModel; // 🌟 必须引入
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Timers;
-using Timer = System.Timers.Timer;
+
 namespace TouchpadToMiddleClick
 {
     public class ForegroundTracker
@@ -18,17 +16,15 @@ namespace TouchpadToMiddleClick
         private System.Timers.Timer wadpy_pn_RadarTimer;
         private string wadpy_pn_LastProcessName = "";
 
-        public Action<string, bool>? OnFocusChanged;
+        // 🌟 接口升级：传出 (进程名, 中键配置, 滚动配置)
+        public Action<string, ProcessConfig?, ProcessConfig?>? OnFocusChanged;
 
-        // 🌟 核心改动：使用可观察集合，方便 UI 同步更新
-        public ObservableCollection<string> TargetProcesses { get; set; }
+        private ConfigContainer _config;
 
-        public ForegroundTracker(ObservableCollection<string> sharedList)
+        public ForegroundTracker(ConfigContainer config)
         {
-            // 直接引用外部传入的集合地址
-            TargetProcesses = sharedList;
-
-            wadpy_pn_RadarTimer = new Timer(300);
+            _config = config;
+            wadpy_pn_RadarTimer = new System.Timers.Timer(300);
             wadpy_pn_RadarTimer.Elapsed += Wadpy_pn_RadarTimer_Elapsed;
         }
 
@@ -50,12 +46,17 @@ namespace TouchpadToMiddleClick
                 {
                     wadpy_pn_LastProcessName = currentProcess;
 
-                    // 🌟 动态匹配：检查当前进程是否在用户自定义的名单中
-                    bool isTarget = TargetProcesses.Any(p =>
-                        string.Equals(p, currentProcess, StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(p + ".exe", currentProcess, StringComparison.OrdinalIgnoreCase));
+                    // 在平移列表中寻找
+                    var panConfig = _config.PanProcesses.FirstOrDefault(p =>
+                        string.Equals(p.ProcessName, currentProcess, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(p.ProcessName + ".exe", currentProcess, StringComparison.OrdinalIgnoreCase));
 
-                    OnFocusChanged?.Invoke(currentProcess, isTarget);
+                    // 在模拟滚动列表中寻找
+                    var scrollConfig = _config.ScrollProcesses.FirstOrDefault(p =>
+                        string.Equals(p.ProcessName, currentProcess, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(p.ProcessName + ".exe", currentProcess, StringComparison.OrdinalIgnoreCase));
+
+                    OnFocusChanged?.Invoke(currentProcess, panConfig, scrollConfig);
                 }
             }
             catch { }

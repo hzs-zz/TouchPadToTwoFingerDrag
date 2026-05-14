@@ -7,78 +7,141 @@ using Wpf.Ui.Controls;
 
 namespace TouchpadToMiddleClick
 {
+    public class ProcessConfig
+    {
+        public string ProcessName { get; set; } = "";
+        public ObservableCollection<string> TargetClasses { get; set; } = new ObservableCollection<string>();
+    }
+
+    public class ConfigContainer
+    {
+        public bool IsPanEnabled { get; set; } = true;
+        public bool IsScrollEnabled { get; set; } = true;
+        public bool ShowToastNotifications { get; set; } = true;
+
+        public ObservableCollection<ProcessConfig> PanProcesses { get; set; } = new ObservableCollection<ProcessConfig>();
+        public ObservableCollection<ProcessConfig> ScrollProcesses { get; set; } = new ObservableCollection<ProcessConfig>();
+    }
+
     public partial class SettingsWindow : FluentWindow
     {
-        private ObservableCollection<string> wadpy_pn_dataSource;
+        private ConfigContainer _config;
 
-        public SettingsWindow(ObservableCollection<string> processes)
+        public SettingsWindow(ConfigContainer config)
         {
             InitializeComponent();
-            wadpy_pn_dataSource = processes;
+            _config = config;
+            this.DataContext = _config;
 
-            // 设置数据上下文，让 ListBox 能看到名单
-            this.DataContext = wadpy_pn_dataSource;
+            UpdateSwitches();
         }
 
-        // 🌟 添加按钮逻辑
-        private void wadpy_pn_AddButton_Click(object sender, RoutedEventArgs e)
+        public void UpdateSwitches()
         {
-            string newProcess = wadpy_pn_ProcessInput.Text.Trim();
+            PanSwitch.Checked -= PanSwitch_Checked;
+            PanSwitch.Unchecked -= PanSwitch_Unchecked;
+            ScrollSwitch.Checked -= ScrollSwitch_Checked;
+            ScrollSwitch.Unchecked -= ScrollSwitch_Unchecked;
+            ToastSwitch.Checked -= ToastSwitch_Checked;
+            ToastSwitch.Unchecked -= ToastSwitch_Unchecked;
 
-            // 简单的格式处理：去掉可能带有的 .exe 后缀，统一存入
-            if (newProcess.ToLower().EndsWith(".exe"))
-            {
-                newProcess = newProcess.Substring(0, newProcess.Length - 4);
-            }
+            PanSwitch.IsChecked = _config.IsPanEnabled;
+            ScrollSwitch.IsChecked = _config.IsScrollEnabled;
+            ToastSwitch.IsChecked = _config.ShowToastNotifications;
 
-            if (!string.IsNullOrEmpty(newProcess))
-            {
-                if (!wadpy_pn_dataSource.Contains(newProcess))
-                {
-                    wadpy_pn_dataSource.Add(newProcess);
-                    wadpy_pn_ProcessInput.Clear();
-                    // 自动把焦点还给输入框，方便连续输入
-                    wadpy_pn_ProcessInput.Focus();
-                }
-                else
-                {
-                    // 如果已存在，可以闪烁一下或者清空
-                    wadpy_pn_ProcessInput.Clear();
-                }
-            }
+            PanSwitch.Checked += PanSwitch_Checked;
+            PanSwitch.Unchecked += PanSwitch_Unchecked;
+            ScrollSwitch.Checked += ScrollSwitch_Checked;
+            ScrollSwitch.Unchecked += ScrollSwitch_Unchecked;
+            ToastSwitch.Checked += ToastSwitch_Checked;
+            ToastSwitch.Unchecked += ToastSwitch_Unchecked;
         }
 
-        // 支持回车键添加
-        private void wadpy_pn_ProcessInput_KeyDown(object sender, KeyEventArgs e)
+        // --- 🌟 新增：整个卡片区域的点击控制 ---
+        private void PanCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { PanSwitch.IsChecked = !PanSwitch.IsChecked; e.Handled = true; }
+        private void ScrollCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { ScrollSwitch.IsChecked = !ScrollSwitch.IsChecked; e.Handled = true; }
+        private void ToastCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { ToastSwitch.IsChecked = !ToastSwitch.IsChecked; e.Handled = true; }
+
+
+        // --- 全局设置逻辑 ---
+        private void ToastSwitch_Checked(object sender, RoutedEventArgs e) { _config.ShowToastNotifications = true; (Application.Current as App)?.SaveConfig(); }
+        private void ToastSwitch_Unchecked(object sender, RoutedEventArgs e) { _config.ShowToastNotifications = false; (Application.Current as App)?.SaveConfig(); }
+
+        // --- 中键平移逻辑 ---
+        private void PanSwitch_Checked(object sender, RoutedEventArgs e) { _config.IsPanEnabled = true; (Application.Current as App)?.UpdateHookMasters(); }
+        private void PanSwitch_Unchecked(object sender, RoutedEventArgs e) { _config.IsPanEnabled = false; (Application.Current as App)?.UpdateHookMasters(); }
+
+        private void AddPanProcess_Click(object sender, RoutedEventArgs e)
         {
-            if (e.Key == Key.Enter)
+            string name = NewPanProcessInput.Text.Trim();
+            if (name.ToLower().EndsWith(".exe")) name = name.Substring(0, name.Length - 4);
+            if (!string.IsNullOrEmpty(name))
             {
-                wadpy_pn_AddButton_Click(sender, e);
-                // 防止回车键触发其他系统音
-                e.Handled = true;
+                _config.PanProcesses.Add(new ProcessConfig { ProcessName = name });
+                NewPanProcessInput.Clear();
+                (Application.Current as App)?.SaveConfig();
             }
         }
-
-        // 🌟 删除按钮逻辑
-        private void wadpy_pn_DeleteButton_Click(object sender, RoutedEventArgs e)
+        private void RemovePanProcess_Click(object sender, RoutedEventArgs e)
         {
-            // 在 WPF 中，sender 是按钮，按钮的 DataContext 自动就是那一行的字符串
+            if ((sender as FrameworkElement)?.DataContext is ProcessConfig p) { _config.PanProcesses.Remove(p); (Application.Current as App)?.SaveConfig(); }
+        }
+        private void AddPanClass_Click(object sender, RoutedEventArgs e)
+        {
             var btn = sender as Wpf.Ui.Controls.Button;
-            var nameToRemove = btn?.DataContext as string;
-
-            if (nameToRemove != null)
+            var input = btn?.Tag as Wpf.Ui.Controls.TextBox;
+            if (btn?.DataContext is ProcessConfig p && !string.IsNullOrWhiteSpace(input?.Text))
             {
-                wadpy_pn_dataSource.Remove(nameToRemove);
+                if (!p.TargetClasses.Contains(input.Text.Trim())) p.TargetClasses.Add(input.Text.Trim());
+                input.Clear();
+                (Application.Current as App)?.SaveConfig();
             }
+        }
+        private void RemovePanClass_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Wpf.Ui.Controls.Button;
+            if (btn?.Tag is ProcessConfig p && btn.DataContext is string c) { p.TargetClasses.Remove(c); (Application.Current as App)?.SaveConfig(); }
+        }
+
+        // --- 滚动模拟逻辑 ---
+        private void ScrollSwitch_Checked(object sender, RoutedEventArgs e) { _config.IsScrollEnabled = true; (Application.Current as App)?.UpdateHookMasters(); }
+        private void ScrollSwitch_Unchecked(object sender, RoutedEventArgs e) { _config.IsScrollEnabled = false; (Application.Current as App)?.UpdateHookMasters(); }
+
+        private void AddScrollProcess_Click(object sender, RoutedEventArgs e)
+        {
+            string name = NewScrollProcessInput.Text.Trim();
+            if (name.ToLower().EndsWith(".exe")) name = name.Substring(0, name.Length - 4);
+            if (!string.IsNullOrEmpty(name))
+            {
+                _config.ScrollProcesses.Add(new ProcessConfig { ProcessName = name });
+                NewScrollProcessInput.Clear();
+                (Application.Current as App)?.SaveConfig();
+            }
+        }
+        private void RemoveScrollProcess_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is ProcessConfig p) { _config.ScrollProcesses.Remove(p); (Application.Current as App)?.SaveConfig(); }
+        }
+        private void AddScrollClass_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Wpf.Ui.Controls.Button;
+            var input = btn?.Tag as Wpf.Ui.Controls.TextBox;
+            if (btn?.DataContext is ProcessConfig p && !string.IsNullOrWhiteSpace(input?.Text))
+            {
+                if (!p.TargetClasses.Contains(input.Text.Trim())) p.TargetClasses.Add(input.Text.Trim());
+                input.Clear();
+                (Application.Current as App)?.SaveConfig();
+            }
+        }
+        private void RemoveScrollClass_Click(object sender, RoutedEventArgs e)
+        {
+            var btn = sender as Wpf.Ui.Controls.Button;
+            if (btn?.Tag is ProcessConfig p && btn.DataContext is string c) { p.TargetClasses.Remove(c); (Application.Current as App)?.SaveConfig(); }
         }
 
         private void GithubButton_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                Process.Start(new ProcessStartInfo("https://github.com/hzs-zz") { UseShellExecute = true });
-            }
-            catch { /* 忽略浏览器启动异常 */ }
+            try { Process.Start(new ProcessStartInfo("https://github.com/hzs-zz") { UseShellExecute = true }); } catch { }
         }
     }
 }

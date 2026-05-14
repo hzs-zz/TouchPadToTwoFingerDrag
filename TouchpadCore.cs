@@ -7,12 +7,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using Timer = System.Timers.Timer;
+
 namespace TouchpadToMiddleClick;
 
-using Timer = System.Timers.Timer;
-class TouchpadCore
-{
-}
+class TouchpadCore { }
+
+// 🌟 新增：模式区分
+public enum InteractionMode { None, Panning, Scrolling }
 
 public class TwoFingerLogic
 {
@@ -24,20 +26,16 @@ public class TwoFingerLogic
 
     private Dictionary<int, TouchpadContact> _lastContacts = new();
 
-    // 意图判定阈值
     private const double INTENT_THRESHOLD = 15.0;
     private double _intentPanAcc = 0;
     private double _intentZoomAcc = 0;
 
-    // 旋转平移变量
     private const double SENSITIVITY = 0.2;
     private double _remX = 0;
     private double _remY = 0;
 
-    // 捏合缩放变量
     private double _lastDistance = 0;
     private double _zoomAccumulator = 0;
-    // 缩放触发阈值 (建议 20~40，越小越灵敏)
     private const double ZOOM_THRESHOLD = 25.0;
 
     private Timer _watchdogTimer;
@@ -50,10 +48,16 @@ public class TwoFingerLogic
         _watchdogTimer.Elapsed += (s, e) => ForceRelease("超时未移动 (看门狗咬断)");
     }
 
-    public void Process(List<TouchpadContact> currentContacts)
+    public void Process(List<TouchpadContact> currentContacts, InteractionMode activeMode)
     {
         lock (_lockObj)
         {
+            if (activeMode == InteractionMode.None)
+            {
+                ForceRelease("模式未激活");
+                return;
+            }
+
             int count = currentContacts.Count;
             _watchdogTimer.Stop();
 
@@ -80,7 +84,6 @@ public class TwoFingerLogic
                 double avgDx = matchCount > 0 ? (double)totalDx / matchCount : 0;
                 double avgDy = matchCount > 0 ? (double)totalDy / matchCount : 0;
                 double panMagnitude = Math.Sqrt(avgDx * avgDx + avgDy * avgDy);
-
                 double currentDistance = CalculateDistance(currentContacts[0], currentContacts[1]);
                 double deltaDistance = _isDragging ? (currentDistance - _lastDistance) : 0;
 
@@ -88,84 +91,94 @@ public class TwoFingerLogic
 
                 if (hasPhysicalMovement)
                 {
-                    if (!_isDragging)
+                    // 🌟 分支 1：如果是“强制滚轮模拟”模式，只发送原生滚轮信号
+                    if (activeMode == InteractionMode.Scrolling)
                     {
-                        _isDragging = true;
-                        _currentMode = GestureMode.Undecided;
-                        _intentPanAcc = 0;
-                        _intentZoomAcc = 0;
-                        _zoomAccumulator = 0;
-                        _remX = 0; _remY = 0;
-                        _isMiddleDown = false;
-                    }
-                    else
-                    {
-                        if (_currentMode == GestureMode.Undecided)
+                        if (!_isDragging)
                         {
-                            _intentPanAcc += panMagnitude;
-                            _intentZoomAcc += Math.Abs(deltaDistance);
-
-                            if (_intentPanAcc > INTENT_THRESHOLD)
-                            {
-                                _currentMode = GestureMode.Panning;
-                                _isMiddleDown = true;
-                                MouseSimulator.MiddleDown();
-                            }
-                            else if (_intentZoomAcc > INTENT_THRESHOLD)
-                            {
-                                _currentMode = GestureMode.Zooming;
-                            }
+                            _isDragging = true;
+                            _remY = 0;
                         }
 
-                        if (_currentMode == GestureMode.Panning)
+                        _remY += avgDy * 0.8; // 灵敏度乘数，可调整
+                        int clicks = (int)_remY;
+
+                        if (clicks != 0)
                         {
-                            double moveX = avgDx * SENSITIVITY + _remX;
-                            double moveY = avgDy * SENSITIVITY + _remY;
-
-                            int actX = (int)moveX;
-                            int actY = (int)moveY;
-
-                            _remX = moveX - actX;
-                            _remY = moveY - actY;
-
-                            if (actX != 0 || actY != 0)
-                            {
-                                MouseSimulator.Move(actX, actY);
-                            }
-                        }
-                        else if (_currentMode == GestureMode.Zooming)
-                        {
-                            _zoomAccumulator += deltaDistance;
-
-                            if (_zoomAccumulator > ZOOM_THRESHOLD)
-                            {
-                                int clicks = (int)(_zoomAccumulator / ZOOM_THRESHOLD);
-                                MouseSimulator.Scroll(clicks * 120);
-                                _zoomAccumulator -= clicks * ZOOM_THRESHOLD;
-                            }
-                            else if (_zoomAccumulator < -ZOOM_THRESHOLD)
-                            {
-                                int clicks = (int)(-_zoomAccumulator / ZOOM_THRESHOLD);
-                                MouseSimulator.Scroll(-clicks * 120);
-                                _zoomAccumulator += clicks * ZOOM_THRESHOLD;
-                            }
+                            // dy为正表示手指下滑，相当于滚轮向后滚(页面下卷)，原生滚轮向下是负数
+                            MouseSimulator.Scroll(clicks * 15);
+                            _remY -= clicks;
                         }
                     }
+                    // 🌟 分支 2：如果是原有的“中键平移”模式
+                    else if (activeMode == InteractionMode.Panning)
+                    {
+                        if (!_isDragging)
+                        {
+                            _isDragging = true;
+                            _currentMode = GestureMode.Undecided;
+                            _intentPanAcc = 0;
+                            _intentZoomAcc = 0;
+                            _zoomAccumulator = 0;
+                            _remX = 0; _remY = 0;
+                            _isMiddleDown = false;
+                        }
+                        else
+                        {
+                            if (_currentMode == GestureMode.Undecided)
+                            {
+                                _intentPanAcc += panMagnitude;
+                                _intentZoomAcc += Math.Abs(deltaDistance);
 
+                                if (_intentPanAcc > INTENT_THRESHOLD)
+                                {
+                                    _currentMode = GestureMode.Panning;
+                                    _isMiddleDown = true;
+                                    MouseSimulator.MiddleDown();
+                                }
+                                else if (_intentZoomAcc > INTENT_THRESHOLD)
+                                {
+                                    _currentMode = GestureMode.Zooming;
+                                }
+                            }
+
+                            if (_currentMode == GestureMode.Panning)
+                            {
+                                double moveX = avgDx * SENSITIVITY + _remX;
+                                double moveY = avgDy * SENSITIVITY + _remY;
+                                int actX = (int)moveX;
+                                int actY = (int)moveY;
+                                _remX = moveX - actX;
+                                _remY = moveY - actY;
+
+                                if (actX != 0 || actY != 0) MouseSimulator.Move(actX, actY);
+                            }
+                            else if (_currentMode == GestureMode.Zooming)
+                            {
+                                _zoomAccumulator += deltaDistance;
+                                if (_zoomAccumulator > ZOOM_THRESHOLD)
+                                {
+                                    int clicks = (int)(_zoomAccumulator / ZOOM_THRESHOLD);
+                                    MouseSimulator.Scroll(clicks * 120);
+                                    _zoomAccumulator -= clicks * ZOOM_THRESHOLD;
+                                }
+                                else if (_zoomAccumulator < -ZOOM_THRESHOLD)
+                                {
+                                    int clicks = (int)(-_zoomAccumulator / ZOOM_THRESHOLD);
+                                    MouseSimulator.Scroll(-clicks * 120);
+                                    _zoomAccumulator += clicks * ZOOM_THRESHOLD;
+                                }
+                            }
+                        }
+                    }
                     _watchdogTimer.Start();
                 }
-                else if (_isDragging)
-                {
-                    _watchdogTimer.Start();
-                }
+                else if (_isDragging) _watchdogTimer.Start();
 
                 _lastContacts = currentContacts.ToDictionary(c => c.ContactId);
                 _lastDistance = currentDistance;
             }
-            else
-            {
-                _lastContacts.Clear();
-            }
+            else _lastContacts.Clear();
         }
     }
 
@@ -194,7 +207,6 @@ public class TwoFingerLogic
     }
 }
 
-
 public static class MouseSimulator
 {
     private const uint MOUSEEVENTF_MOVE = 0x0001;
@@ -205,29 +217,11 @@ public static class MouseSimulator
     [DllImport("user32.dll")]
     private static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, int dwExtraInfo);
 
-    // 【核心修改】：利用 ThreadPool 将底层信号发射扔到后台，解放主线程！
-    public static void Move(int dx, int dy)
-    {
-        ThreadPool.QueueUserWorkItem(_ => mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, 0));
-    }
-
-    public static void MiddleDown()
-    {
-        ThreadPool.QueueUserWorkItem(_ => mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0));
-    }
-
-    public static void MiddleUp()
-    {
-        ThreadPool.QueueUserWorkItem(_ => mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0));
-    }
-
-    public static void Scroll(int delta)
-    {
-        ThreadPool.QueueUserWorkItem(_ => mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)delta, 0));
-    }
+    public static void Move(int dx, int dy) { ThreadPool.QueueUserWorkItem(_ => mouse_event(MOUSEEVENTF_MOVE, dx, dy, 0, 0)); }
+    public static void MiddleDown() { ThreadPool.QueueUserWorkItem(_ => mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, 0)); }
+    public static void MiddleUp() { ThreadPool.QueueUserWorkItem(_ => mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, 0)); }
+    public static void Scroll(int delta) { ThreadPool.QueueUserWorkItem(_ => mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)delta, 0)); }
 }
-
-
 
 public static class MouseHookManager
 {
@@ -237,8 +231,75 @@ public static class MouseHookManager
     private const uint LLMHF_INJECTED = 0x00000001;
     private const uint LLMHF_LOWER_IL_INJECTED = 0x00000002;
 
-    public static bool IsDriverActive = false;
-    public static bool IsTouchpadActive = false;
+    public static Action<InteractionMode>? OnTargetLockChanged;
+    public static InteractionMode ActiveMode { get; private set; } = InteractionMode.None;
+
+    public static bool IsPanMasterOn = false;
+    public static bool IsScrollMasterOn = false;
+
+    public static IEnumerable<string>? PanTargetClasses = null;
+    public static IEnumerable<string>? ScrollTargetClasses = null;
+
+    [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(POINT Point);
+    [DllImport("user32.dll", CharSet = CharSet.Auto)] private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+    [DllImport("user32.dll")] private static extern bool GetCursorPos(out POINT lpPoint);
+
+    private static int _lastTouchpadTick = 0;
+    private const int INERTIA_TIMEOUT = 500;
+    private static int _lastContactCount = 0;
+
+    private static Timer _restRadarTimer;
+    private static POINT _lastCursorPt;
+    private static int _restTicks = 0;
+    private static readonly object _evalLock = new object();
+
+    public static void UpdateTouchpadState(int contactCount)
+    {
+        if (contactCount > 0) _lastTouchpadTick = Environment.TickCount;
+
+        if (contactCount > _lastContactCount)
+        {
+            if (GetCursorPos(out POINT pt))
+            {
+                Task.Run(() => EvaluateTargetWindow(pt));
+            }
+        }
+        _lastContactCount = contactCount;
+    }
+
+    private static void EvaluateTargetWindow(POINT pt)
+    {
+        lock (_evalLock)
+        {
+            InteractionMode prevMode = ActiveMode;
+            InteractionMode currentMode = InteractionMode.None;
+
+            IntPtr hWndUnderCursor = WindowFromPoint(pt);
+            if (hWndUnderCursor != IntPtr.Zero)
+            {
+                StringBuilder classNameBuilder = new StringBuilder(256);
+                GetClassName(hWndUnderCursor, classNameBuilder, 256);
+                string className = classNameBuilder.ToString();
+
+                // 优先判断是否符合“中键平移”
+                if (IsPanMasterOn && PanTargetClasses != null && PanTargetClasses.Any(c => className.IndexOf(c, StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    currentMode = InteractionMode.Panning;
+                }
+                // 再判断是否符合“强制模拟滚动”
+                else if (IsScrollMasterOn && ScrollTargetClasses != null && ScrollTargetClasses.Any(c => className.IndexOf(c, StringComparison.OrdinalIgnoreCase) >= 0))
+                {
+                    currentMode = InteractionMode.Scrolling;
+                }
+            }
+
+            if (prevMode != currentMode)
+            {
+                ActiveMode = currentMode;
+                OnTargetLockChanged?.Invoke(currentMode);
+            }
+        }
+    }
 
     private delegate IntPtr LowLevelMouseProc(int nCode, IntPtr wParam, IntPtr lParam);
     private static LowLevelMouseProc _proc = HookCallback;
@@ -251,49 +312,75 @@ public static class MouseHookManager
         {
             _hookID = SetWindowsHookEx(WH_MOUSE_LL, _proc, GetModuleHandle(curModule.ModuleName), 0);
         }
+
+        _restRadarTimer = new Timer(30);
+        _restRadarTimer.Elapsed += RestRadar_Tick;
+        _restRadarTimer.Start();
     }
 
     public static void Stop()
     {
         UnhookWindowsHookEx(_hookID);
+        _restRadarTimer?.Stop();
+    }
+
+    private static void RestRadar_Tick(object sender, ElapsedEventArgs e)
+    {
+        // 只有当至少一个功能总开关打开，且手指不在拖拽时，才在后台巡逻
+        if (!(IsPanMasterOn || IsScrollMasterOn) || _lastContactCount >= 2) return;
+
+        if (GetCursorPos(out POINT pt))
+        {
+            if (pt.x != _lastCursorPt.x || pt.y != _lastCursorPt.y)
+            {
+                _lastCursorPt = pt;
+                _restTicks = 0;
+            }
+            else
+            {
+                _restTicks++;
+                if (_restTicks == 1)
+                {
+                    EvaluateTargetWindow(pt);
+                }
+            }
+        }
     }
 
     private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        // 如果程序开启，并且手指正放在触摸板上
-        if (nCode >= 0 && IsDriverActive && IsTouchpadActive)
+        if (nCode >= 0)
         {
             if (wParam == (IntPtr)WM_MOUSEWHEEL || wParam == (IntPtr)WM_MOUSEHWHEEL)
             {
+                // 如果当前模式是None，原生滚轮正常放行
+                if (ActiveMode == InteractionMode.None)
+                {
+                    return CallNextHookEx(_hookID, nCode, wParam, lParam);
+                }
+
                 MSLLHOOKSTRUCT hookStruct = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
 
-                // 检查这是否是系统物理发出的真实滚轮事件 (如果是代码注入的，标志位不为0)
+                // 我们自己注入的滚动信号 (MouseSimulator 发送的) 不会被拦截！
                 if ((hookStruct.flags & LLMHF_INJECTED) == 0 && (hookStruct.flags & LLMHF_LOWER_IL_INJECTED) == 0)
                 {
-                    // 拦截掉！不传给 SolidWorks
-                    return (IntPtr)1;
+                    int elapsed = Environment.TickCount - _lastTouchpadTick;
+                    // 吸收真实的物理触摸板惯性及滚动信号
+                    if (elapsed >= 0 && elapsed < INERTIA_TIMEOUT)
+                    {
+                        return (IntPtr)1;
+                    }
                 }
             }
         }
         return CallNextHookEx(_hookID, nCode, wParam, lParam);
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct MSLLHOOKSTRUCT { public POINT pt; public uint mouseData; public uint flags; public uint time; public IntPtr dwExtraInfo; }
+    [StructLayout(LayoutKind.Sequential)] private struct MSLLHOOKSTRUCT { public POINT pt; public uint mouseData; public uint flags; public uint time; public IntPtr dwExtraInfo; }
+    [StructLayout(LayoutKind.Sequential)] private struct POINT { public int x; public int y; }
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct POINT { public int x; public int y; }
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr GetModuleHandle(string lpModuleName);
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)] private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelMouseProc lpfn, IntPtr hMod, uint dwThreadId);
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)][return: MarshalAs(UnmanagedType.Bool)] private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)] private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)] private static extern IntPtr GetModuleHandle(string lpModuleName);
 }
