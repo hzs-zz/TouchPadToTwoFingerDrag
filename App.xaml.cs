@@ -8,6 +8,7 @@ using Timer = System.Timers.Timer;
 using System.Linq;
 using System.IO;
 using System.Xml.Serialization;
+using System.Threading; // 🌟 新增：为了使用 Mutex 互斥锁
 
 namespace TouchpadToMiddleClick
 {
@@ -19,6 +20,9 @@ namespace TouchpadToMiddleClick
 
         public ConfigContainer wadpy_pn_Config = new ConfigContainer();
         private string wadpy_pn_ConfigPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TouchpadConfig.xml");
+
+        // 🌟 新增：声明一个全局互斥锁变量，防止被垃圾回收
+        private static Mutex? wadpy_pn_SingleInstanceMutex;
 
         public void SaveConfig()
         {
@@ -66,6 +70,19 @@ namespace TouchpadToMiddleClick
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            // 🌟 核心修改：在启动的绝对第一时间检查是否已经有实例在运行
+            bool isNewInstance;
+            wadpy_pn_SingleInstanceMutex = new Mutex(true, "TouchpadToMiddleClick_Global_Unique_Mutex_Lock", out isNewInstance);
+
+            if (!isNewInstance)
+            {
+                // 如果 isNewInstance 为 false，说明锁被别人占了，直接弹窗并自尽！
+                MessageBox.Show("程序已经在后台运行中啦！\n请直接按下快捷键 [Alt + Shift + N] 打开管理面板。",
+                                "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                Application.Current.Shutdown();
+                return; // 阻断下方所有代码的执行
+            }
+
             base.OnStartup(e);
 
             LoadConfig();
@@ -145,7 +162,6 @@ namespace TouchpadToMiddleClick
             Dispatcher.Invoke(() =>
             {
                 MouseHookManager.PanTargetClasses = panConfig?.TargetClasses;
-                // 🌟 同步传导该进程的黑白名单规则
                 MouseHookManager.IsPanReverseRule = panConfig?.IsReverseRule ?? false;
                 MouseHookManager.ScrollTargetClasses = scrollConfig?.TargetClasses;
 
@@ -161,6 +177,14 @@ namespace TouchpadToMiddleClick
             SaveConfig();
             wadpy_pn_Radar?.Stop();
             MouseHookManager.Stop();
+
+            // 🌟 新增：程序彻底退出时，优雅地交出这把系统锁
+            if (wadpy_pn_SingleInstanceMutex != null)
+            {
+                wadpy_pn_SingleInstanceMutex.ReleaseMutex();
+                wadpy_pn_SingleInstanceMutex.Close();
+            }
+
             base.OnExit(e);
         }
     }
